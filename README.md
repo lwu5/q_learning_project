@@ -34,6 +34,6 @@ Name: Timmy Lin, Liuhao Wu
 
 ## Timeline
 - Q-learning algorithm and relative writeup:
-- Roobt perception:
+- Robot perception:
 - Robot manipulation & movement:
 - Final writeup:
