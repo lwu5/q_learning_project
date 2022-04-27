@@ -3,6 +3,10 @@
 import rospy
 import numpy as np
 import os
+import random
+
+from q_learning_project.msg import QLearningReward
+from q_learning_project.msg import RobotMoveObjectToTag
 
 # Path of directory on where this file is located
 path_prefix = os.path.dirname(__file__) + "/action_states/"
@@ -44,9 +48,54 @@ class QLearning(object):
         self.states = np.loadtxt(path_prefix + "states.txt")
         self.states = list(map(lambda x: list(map(lambda y: int(y), x)), self.states))
 
+        self.q_matrix = np.matrix([64][9])
+
+        # initialize q matrix
+        for i in range(64):
+            for j in range(9):
+                self.q_matrix[i][j]  = 0.0
+
+        self.q_matrix_converged = False
+    
+    def q_learning(self):
+        t = 0
+        diff_q = 99999999
+        tolerance = 0.1
+        diff_num = 0
+        s = 0
+        alpha = 1
+        gamma = 0.8
+        while diff_num < 20:
+            a = random.choice(list(filter(lambda x : x != -1, self.action_matrix[s])))
+            # perform / publish an action
+            object = self.actions[a]["object"]
+            tag = self.actions[a]["tag"]
+            self.action_pub = rospy.Publisher("/q_learning/robot_action", RobotMoveObjectToTag(robot_object = object, tag_id = tag), queue_size = 10)
+            # receive / subscribe a reward
+            self.reward_sub = rospy.Subscriber("/q_learning/reward", QLearningReward, self.get_reward)
+            curr_cell = self.q_matrix[s][a]
+            self.q_matrix[s][a] += alpha * (self.r + gamma * (max(self.q_matrix[s+1])- self.q_matrix[s][a]))
+            t = t + 1
+
+            if  abs(self.q_matrix[s][a] - curr_cell) < tolerance:
+                diff_num += 1
+        self.q_matrix_converged = True
+        return
+    
+    def get_reward(self, data):
+        self.r = data.reward
+        self.i_num = data.iteration_num
+        return
+        
+    
     def save_q_matrix(self):
         # TODO: You'll want to save your q_matrix to a file once it is done to
         # avoid retraining
+        if self.q_matrix_converged == True:
+            # save to file
+            np.savetxt("q_matrix_converged.csv", self.q_matrix, delimiter = ",")
+        else:
+            self.q_learning()
         return
 
 if __name__ == "__main__":
