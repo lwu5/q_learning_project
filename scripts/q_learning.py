@@ -49,15 +49,19 @@ class QLearning(object):
         self.states = np.loadtxt(path_prefix + "states.txt")
         self.states = list(map(lambda x: list(map(lambda y: int(y), x)), self.states))
 
-        self.q_matrix = np.matrix([64][9])
+        self.q_matrix = []
+        self.initialize_q_matrix()
+        self.q_matrix_converged = False
 
         # initialize q matrix
+    
+    def initialize_q_matrix(self):
         for i in range(64):
             for j in range(9):
-                self.q_matrix[i][j]  = 0.0
+                self.q_matrix.append(0.0)
+        return
 
-        self.q_matrix_converged = False
-    
+
     def q_learning(self):
         t = 0
         diff_q = 99999999
