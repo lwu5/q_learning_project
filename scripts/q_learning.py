@@ -49,20 +49,43 @@ class QLearning(object):
         self.states = np.loadtxt(path_prefix + "states.txt")
         self.states = list(map(lambda x: list(map(lambda y: int(y), x)), self.states))
 
+
+        # ROS
+        self.action_pub = rospy.Publisher("/q_learning/robot_action", RobotMoveObjectToTag, queue_size = 10)
+
+        # ROS 
+        self.reward_sub = rospy.Subscriber("/q_learning/reward", QLearningReward, self.get_reward)
+
+        self.q_matrix_pub = rospy.Publisher("/q_learning/q_matrix", QMatrix, queue_size = 10)
+
+        self.r = 0
+        self.i_num = 0
         self.q_matrix = []
         self.initialize_q_matrix()
         self.q_matrix_converged = False
 
-        # initialize q matrix
-    
+        self.q_learning()
+        if self.q_matrix_converged == True:
+            self.save_q_matrix()
+
+        
+    # initialize q matrix
     def initialize_q_matrix(self):
         for i in range(64):
+            q_matrix_row = []
+            self.q_matrix.append(q_matrix_row)
             for j in range(9):
-                self.q_matrix.append(0.0)
+                q_matrix_row.append(0.0)
+        print("initialized")
         return
+
+    def get_reward(self, data):
+        self.r = data.reward
+        self.i_num = data.iteration_num
 
 
     def q_learning(self):
+        print("q_learning...")
         t = 0
         diff_q = 99999999
         tolerance = 0.1
@@ -70,7 +93,7 @@ class QLearning(object):
         s = 0
         alpha = 1
         gamma = 0.8
-        while diff_num < 20:
+        while diff_num < 100: #100 
 
             #find the indices from self.action_matrix[s] that are not -1
             valid_indices = []
@@ -79,7 +102,7 @@ class QLearning(object):
                     valid_indices.append(index)
                     
             next_state = random.choice(valid_indices)
-            a = self.action_matrix[s][next_state]
+            a = int(self.action_matrix[s][next_state])
             """
             For debug:
             #print("valid_indices", valid_indices)
@@ -90,42 +113,42 @@ class QLearning(object):
             #a = random.choice(list(filter(lambda x : x != -1, self.action_matrix[s]))) #this code is wrong
 
             # perform / publish an action
-            object = self.actions[a]["object"]
-            tag = self.actions[a]["tag"]
-            self.action_pub = rospy.Publisher("/q_learning/robot_action", RobotMoveObjectToTag(robot_object = object, tag_id = tag), queue_size = 10)
-            # receive / subscribe a reward
-            self.reward_sub = rospy.Subscriber("/q_learning/reward", QLearningReward, self.get_reward)
+
+            action_msg = RobotMoveObjectToTag()
+            action_msg.robot_object = self.actions[a]["object"]
+            action_msg.tag_id = int(self.actions[a]["tag"])
             
+            self.action_pub.publish(action_msg)
+            # receive / subscribe a reward
+            rospy.sleep(1)
+
             curr_cell = self.q_matrix[s][a]
 
-                                                             
+            print("reward: ", self.r)                                                 
             self.q_matrix[s][a] += alpha * (self.r + gamma * (max(self.q_matrix[next_state]) - self.q_matrix[s][a]))
 
             # publish Q-matrix to /q_learning/q_matrix
-            self.q_matrix_pub = rospy.Publisher("/q_learning/q_matrix", QMatrix(q_matrix = self.q_matrix), queue_size = 10)
+            q_matrix_msg = QMatrix()
+            q_matrix_msg.q_matrix = self.q_matrix
+            self.q_matrix_pub.publish(q_matrix_msg)
 
             t = t + 1
 
             if  abs(self.q_matrix[s][a] - curr_cell) < tolerance:
                 diff_num += 1
+            print("loop #: ", t)
+
         self.q_matrix_converged = True
-        return
-    
-    def get_reward(self, data):
-        self.r = data.reward
-        self.i_num = data.iteration_num
-        return
-        
+        return        
     
     def save_q_matrix(self):
         # TODO: You'll want to save your q_matrix to a file once it is done to
-        # avoid retraining
-        if self.q_matrix_converged == True:
-            # save to file 
-            np.savetxt("q_matrix_converged.csv", self.q_matrix, delimiter = ",")
-        else:
-            self.q_learning()
+        print("save matrix is called")
+        # save to file 
+        np.savetxt("../scripts/q_matrix_converged.csv", self.q_matrix, delimiter = ",")
         return
+    
 
 if __name__ == "__main__":
     node = QLearning()
+    rospy.spin()
