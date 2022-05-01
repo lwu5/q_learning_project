@@ -87,7 +87,6 @@ class QLearning(object):
             self.q_matrix.append(q_matrix_row)
             for j in range(9):
                 q_matrix_row.append(0.0)
-        print("initialized")
 
  # function for reward subscriber: get reward from the environment
     def get_reward(self, data):
@@ -134,7 +133,7 @@ class QLearning(object):
             # the value in the matrix based on current state and action
             curr_cell = self.q_matrix[self.s][a]
             
-            print("reward: ", self.r)  
+            # print("reward: ", self.r)  
             # update current cell                                               
             self.q_matrix[self.s][a] += alpha * (self.r + gamma * (max(self.q_matrix[next_state]) - self.q_matrix[self.s][a]))
 
@@ -147,7 +146,7 @@ class QLearning(object):
                                                                        # we consider q_matrix unchange
                                                                        #    if the value change is within tolerance
                 no_change_count += 1
-            print("loop #: ", t)
+            # print("loop #: ", t)
 
             # update state
             if t % 3 == 0: # no more dumbbells waiting to be moved
@@ -167,22 +166,28 @@ class QLearning(object):
     
     # save q_matrix to a file once it is done
     def save_q_matrix(self):
+        '''
+        for converging debug: 
+            expected constant nonzero value count
+        
         count = 0
         for i in range(64):
             for j in range(9):
                 if self.q_matrix[i][j] != 0.0:
                     count += 1
         print(self.q_matrix)
-
         print("q_matrix nonzero value count:", count)
+        '''
 
         print("q_matrix saving ...")
 
         with open('q_matrix_converged.csv', 'w') as f:
             writer = csv.writer(f)
             writer.writerows(self.q_matrix)
+
+        # another way of outputing q matrix
+        # np.savetxt("q_matrix_converged.csv", self.q_matrix, delimiter = ",")
         
-        #np.savetxt("q_matrix_converged.csv", self.q_matrix, delimiter = ",")
         print("q_matrix saved")
         return
 
