@@ -23,7 +23,7 @@ Name: Timmy Lin, Liuhao Wu
 
 3. **Determining when to stop iterating through the Q-learning algorithm**
 - **Code Location**: Implemented with `while no_change_count < 300 or t > 1000`  in function `q_learning()` where `no_change_count` is cumulated under statement `if  abs(self.q_matrix[self.s][a] - curr_cell) < tolerance`.
-- **Code Description**: We set up 0.00001 as tolerance threshold. If the value change of the q_matrix is within tolerance, we will consider it as unchanged. Once the count of unchanged values exceeds `300` in the while loop, we consider the q_matrix converged. If the total iteration hits `1000`, then we consider we are not able to generate a q matrix and the q_learning training failed.
+- **Code Description**: We set up `0.00001` as tolerance threshold. If the value change of the q_matrix is within tolerance, we will consider it as unchanged. Once the count of unchanged values exceeds `300` in the while loop, we consider the q_matrix converged. If the total iteration hits `1000`, then we consider we are not able to generate a q matrix and the q_learning training failed.
 
 4. **Executing the path most likely to lead to receiving a reward after the Q-matrix has converged on the simulated Turtlebot3 robot**
 - **Code Location**: (More to update on final writeup, after implementing the perception and control)
