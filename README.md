@@ -18,7 +18,7 @@ Name: Timmy Lin, Liuhao Wu
 
 2. **Updating the Q-matrix**
 - **Code Location**: Implemented with `self.q_matrix_pub` in function `__init__` and `self.q_matrix_pub.publish(q_matrix_msg)` in function `q_learning()`.
-- **Code Description**: Based on robot's current action and state, next state, and reward received from the environment, we follow the Q-learing algorithm to update the Q-matrix. We choose `alpha = 1` and `gamma = 0.8` and update the Q-matrix with the formula: `alpha * (reward + gamma * (max(q_matrix[next state]) -q_matrix[current state][action]))`.
+- **Code Description**: Based on robot's current action and state, next state, and reward received from the environment, we follow the Q-learing algorithm to update the Q-matrix. We choose `alpha = 1` and `gamma = 0.8` and update the Q-matrix with the formula: `q_matrix[current state][action] += alpha * (reward + gamma * (max(q_matrix[next state]) -q_matrix[current state][action]))`.
 
 
 3. **Determining when to stop iterating through the Q-learning algorithm**
