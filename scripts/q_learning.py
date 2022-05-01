@@ -4,7 +4,7 @@ import rospy
 import numpy as np
 import os
 import random
-
+import csv
 from q_learning_project.msg import QLearningReward
 from q_learning_project.msg import RobotMoveObjectToTag
 from q_learning_project.msg import QMatrix
@@ -62,15 +62,8 @@ class QLearning(object):
         self.s = 0
         # initialize reward
         self.r = 0
-        # initialize reward-receiving counter
-        #   it counts how many times the robot has received rewards from the environment
-        self.i_num = 0
         # initialize q matrix
         self.q_matrix = []
-        # initialize flag: 
-        #   if the robot receives a reward, the flag changes to True later; 
-        #   otherwise, it stays False
-        self.reward_change = False
         # initialize flag:
         #   turns True if the q_matrix converges (the value of q_matrix hasn't 
         #   `changed` for no_change_count times)
@@ -96,13 +89,10 @@ class QLearning(object):
                 q_matrix_row.append(0.0)
         print("initialized")
 
-    # function for reward subscriber: get reward from the environment
+ # function for reward subscriber: get reward from the environment
     def get_reward(self, data):
         self.r = data.reward
-        if ((data.iteration_num - self.i_num) != 0): # if the robot receives reward
-            self.reward_change = True
-        self.i_num = data.iteration_num
-
+    
     # run q learning alogrithm
     def q_learning(self):
         print("q_learning...")
@@ -117,7 +107,7 @@ class QLearning(object):
         gamma = 0.8
 
 
-        while no_change_count < 100 or t > 1000: # while q matrix has not converged 
+        while no_change_count < 300 or t > 1000: # while q matrix has not converged 
                                                  # we consider q matrix converged if it has not 
                                                  #  `change` after this amount of iteration
             
@@ -138,11 +128,8 @@ class QLearning(object):
             self.action_pub.publish(action_msg)
 
             # receive / subscribe a reward
-            print("smth")
-            while (self.reward_change == False): # while we not receive a reward
-                rospy.sleep(1) # give the subscriber more time to get a reward
-
-            self.reward_change = False # set the reward flag to False for next action
+            #   allow reward subscriber to have enough time to receive reward
+            rospy.sleep(0.6)
 
             # the value in the matrix based on current state and action
             curr_cell = self.q_matrix[self.s][a]
@@ -180,9 +167,24 @@ class QLearning(object):
     
     # save q_matrix to a file once it is done
     def save_q_matrix(self):
-        np.savetxt("../scripts/q_matrix_converged.csv", self.q_matrix, delimiter = ",")
+        count = 0
+        for i in range(64):
+            for j in range(9):
+                if self.q_matrix[i][j] != 0.0:
+                    count += 1
+        print(self.q_matrix)
+
+        print("q_matrix nonzero value count:", count)
+
+        print("q_matrix saving ...")
+
+        with open('q_matrix_converged.csv', 'w') as f:
+            writer = csv.writer(f)
+            writer.writerows(self.q_matrix)
+        
+        #np.savetxt("q_matrix_converged.csv", self.q_matrix, delimiter = ",")
         print("q_matrix saved")
-    
+        return
 
 if __name__ == "__main__":
     node = QLearning()
