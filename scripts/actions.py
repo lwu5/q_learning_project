@@ -5,6 +5,7 @@ import numpy as np
 import os
 from sensor_msgs.msg import Image
 from geometry_msgs.msg import Twist, Vector3
+from sensor_msgs.msg import LaserScan
 
 # Path of directory on where this file is located
 path_prefix = os.path.dirname(__file__) + "/action_states/"
@@ -51,13 +52,16 @@ class Actions(object):
         
         # TODO: set up cmd_vel publisher 
         self.cmd_pub = rospy.Publisher('cmd_vel', Twist, queue_size = 10)
+        self.scan_sub = rospy.Subscriber('/scan', LaserScan, self.processing_scan)
 
 
         # a list of opitimized action numbers
         self.opt_actions = []
+        self.distance = 0.2
         self.curr_target = 2
         self.curr_tag = 3
         self.get_action()
+        self.front_dist = 5
 
 
 
@@ -132,37 +136,79 @@ class Actions(object):
 
         # using moments() function, the center of the yellow pixels is determined
         M = cv2.moments(mask)
+
+        my_twist = Twist()
+
         # if there are any yellow pixels found
         if M['m00'] > 0:
-                # center of the yellow pixels in the image
-                cx = int(M['m10']/M['m00'])
-                cy = int(M['m01']/M['m00'])
+            # center of the yellow pixels in the image
+            cx = int(M['m10']/M['m00'])
+            cy = int(M['m01']/M['m00'])
 
-                # a red circle is visualized in the debugging window to indicate
-                # the center point of the yellow pixels
-                # hint: if you don't see a red circle, check your bounds for what is considered 'yellow'
-                cv2.circle(image, (cx, cy), 10, (0,0,255), -1)
+            # a red circle is visualized in the debugging window to indicate
+            # the center point of the yellow pixels
+            # hint: if you don't see a red circle, check your bounds for what is considered 'yellow'
+            cv2.circle(image, (cx, cy), 10, (0,0,255), -1)
 
-                # TODO: based on the location of the line (approximated
-                #       by the center of the yellow pixels), implement
-                #       proportional control to have the robot follow
-                #       the yellow line
+            # TODO: based on the location of the line (approximated
+            #       by the center of the yellow pixels), implement
+            #       proportional control to have the robot follow
+            #       the yellow line
+            k_a = 5
+            k_l = -0.1
+            e_a = (w/2 - cx)/w
+            if (abs(e_a) > 0.01):
+                my_twist.angular.z = k_a * e_a
+            else:
+                my_twist.angular.z = 0
+            
+            if self.front_dist == 0:
+                my_twist.linear.x = 0.1
+            else:
+                dx = abs(self.distance - self.front_dist)
+                if dx < 0.1:
+                    my_twist.linear.x = 0
+                else:
+                    e_l = (self.distance - self.front_dist)/self.front_dist
+                    print("e_l:",e_l)
+                    my_twist.linear.x = k_l * e_l
+            print("linear x", my_twist.linear.x )
+        
+        else:
+            my_twist.angular.z = 0.5
+
+        self.cmd_pub.publish(my_twist)
+
+            
+                                   
+                    
                 
-                k = 0.5
-                e = (w/2 - cx)/w
-
-                my_twist = Twist(
-                        linear = Vector3(0.0,0,0),
-                        angular = Vector3(0,0,0)
-                        #linear = Vector3(0.1,0,0),
-                        #angular = Vector3(0,0,k*e)
-                )
-                self.cmd_pub.publish(my_twist)
 
         # shows the debugging window
         # hint: you might want to disable this once you're able to get a red circle in the debugging window
         cv2.imshow("window", image)
         cv2.waitKey(3)
+
+    def processing_scan(self, data):
+        front_index = [0,1,2,3,4,359,358,357,356]
+        dist_sum = 0
+        count = 0
+        for index in front_index:
+            if data.ranges[index] != 0:
+                count+=1
+                dist_sum += data.ranges[index]
+           
+            print("front_dist at index",index,":",data.ranges[index])
+            
+        if dist_sum == 0:
+            self.front_dist = dist_sum
+        else:
+            dist_sum /= count
+            self.front_dist = dist_sum
+        
+        #print("front dis at 0", data.ranges[0])
+        print("front_dis", self.front_dist)
+        
 
     def run(self):
         rospy.spin()
