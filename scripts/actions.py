@@ -55,7 +55,7 @@ class Actions(object):
 
         # a list of opitimized action numbers
         self.opt_actions = []
-        self.curr_target = 0
+        self.curr_target = 2
         self.curr_tag = 3
         self.get_action()
 
@@ -98,17 +98,20 @@ class Actions(object):
         
 
         if self.curr_target == 0:
-            #pink BGR
-            lower_color = np.array([100,0,200])
-            upper_color = np.array([200,30,300])
+            #pink RGB - 254, 4, 153
+            lower_color = (100, 0, 80) #(100, 0, 80)
+            upper_color = (255, 90, 230) #(255,100,230)
+            
+            
         elif self.curr_target ==1:
-            #green BGR #TODO
-            lower_color = np.array([100,0,200])
-            upper_color = np.array([200,30,300])
+            #green RGB #TODO
+            lower_color = np.array([0,75,110])
+            upper_color = np.array([90,255,255])
         else:
-            #blue BGR #TODO
-            lower_color = np.array([100,0,200])
-            upper_color = np.array([200,30,300])
+            #blue RGB #TODO
+            lower_color = np.array([115,90,0])
+            upper_color = np.array([235,255,100])
+            
 
         #RGB
         #Pink - 254, 4, 153
@@ -118,7 +121,7 @@ class Actions(object):
 
         
         # this erases all pixels that aren't yellow
-        mask = cv2.inRange(image, lower_yellow, upper_yellow)
+        mask = cv2.inRange(image, lower_color, upper_color)
 
         # this limits our search scope to only view a slice of the image near the ground
         h, w, d = image.shape
@@ -138,7 +141,7 @@ class Actions(object):
                 # a red circle is visualized in the debugging window to indicate
                 # the center point of the yellow pixels
                 # hint: if you don't see a red circle, check your bounds for what is considered 'yellow'
-                cv2.circle(image, (cx, cy), 20, (0,0,255), -1)
+                cv2.circle(image, (cx, cy), 10, (0,0,255), -1)
 
                 # TODO: based on the location of the line (approximated
                 #       by the center of the yellow pixels), implement
@@ -149,14 +152,16 @@ class Actions(object):
                 e = (w/2 - cx)/w
 
                 my_twist = Twist(
-                        linear = Vector3(0.1,0,0),
-                        angular = Vector3(0,0,k*e)
+                        linear = Vector3(0.0,0,0),
+                        angular = Vector3(0,0,0)
+                        #linear = Vector3(0.1,0,0),
+                        #angular = Vector3(0,0,k*e)
                 )
                 self.cmd_pub.publish(my_twist)
 
         # shows the debugging window
         # hint: you might want to disable this once you're able to get a red circle in the debugging window
-        cv2.imshow("window", mask)
+        cv2.imshow("window", image)
         cv2.waitKey(3)
 
     def run(self):
