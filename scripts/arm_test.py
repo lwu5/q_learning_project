@@ -65,7 +65,7 @@ class Robot(object):
 
       # First determine what how far the grippers should be from the base position.
       # You can use the GUI to find appropriate values based on your need.
-      gripper_joint_goal = [0.009,0.0009]
+      gripper_joint_goal = [0.018,0.018]
 
       # Move the gripper
       self.move_group_gripper.go(gripper_joint_goal, wait=True)
@@ -121,7 +121,7 @@ class Robot(object):
       rospy.sleep(3)
 
       #position to pick up and squeeze
-      gripper_joint_goal = [0.009,0.0009]
+      gripper_joint_goal = [0.018,0.018]
 
       # Move the gripper
       self.move_group_gripper.go(gripper_joint_goal, wait=True)
