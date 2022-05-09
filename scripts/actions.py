@@ -6,6 +6,8 @@ import os
 from sensor_msgs.msg import Image
 from geometry_msgs.msg import Twist, Vector3
 from sensor_msgs.msg import LaserScan
+# import the moveit_commander, which allows us to control the arms
+import moveit_commander, math
 
 # Path of directory on where this file is located
 path_prefix = os.path.dirname(__file__) + "/action_states/"
@@ -54,6 +56,14 @@ class Actions(object):
         self.cmd_pub = rospy.Publisher('cmd_vel', Twist, queue_size = 10)
         self.scan_sub = rospy.Subscriber('/scan', LaserScan, self.processing_scan)
 
+        # # the interface to the group of joints making up the turtlebot3
+        # # openmanipulator arm
+        # self.move_group_arm = moveit_commander.MoveGroupCommander("arm")
+
+        # # the interface to the group of joints making up the turtlebot3
+        # # openmanipulator gripper
+        # self.move_group_gripper = moveit_commander.MoveGroupCommander("gripper")
+
 
         # a list of opitimized action numbers
         self.opt_actions = []
@@ -63,11 +73,10 @@ class Actions(object):
         self.get_action()
         self.front_dist = 5
 
-        self.detect = 1 # 0 = color, 1 = AR tag
+        self.detect = 0 # 0 = color, 1 = AR tag
 
         # load DICT_4X4_50
         self.aruco_dict = cv2.aruco.Dictionary_get(cv2.aruco.DICT_4X4_50)
-
 
 
 
@@ -95,8 +104,17 @@ class Actions(object):
             self.opt_actions.append(opt_action)
         print(self.opt_actions)
     
-    def image_callback(self, msg):
+    def move_arm(self):
+        if self.detect == 0: # picking up color
+            self.move_group_arm.go([0, 0, 0, 0], wait=True)
+        
+        else: # dropping to AR tag
+            pass
+        
+        self.detect = 1 - self.detect
 
+    def image_callback(self, msg):
+        counter = 0
         if self.detect == 0: # detecting color
             self.distance = 0.2
             # converts the incoming ROS message to OpenCV format and HSV (hue, saturation, value)
@@ -244,6 +262,12 @@ class Actions(object):
             
             else:
                 my_twist.angular.z = 0.5
+            
+        if (my_twist.angular.z == 0) and (my_twist.linear.x == 0):
+            counter += 1
+        if counter > 8:
+            self.move_arm()
+            counter = 0
 
         self.cmd_pub.publish(my_twist)
 
