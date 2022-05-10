@@ -51,10 +51,12 @@ class Actions(object):
         # a list of opitimized action numbers
         self.opt_actions = []
         self.distance = 0.4
+        self.buffer = 0.05
         self.curr_target = 1
         self.curr_tag = 2
         self.get_action()
         self.front_dist = 5
+        self.counter = 0
 
         self.detect = 0 # 0 = color, 1 = AR tag
 
@@ -112,6 +114,10 @@ class Actions(object):
         print(self.opt_actions)
     
     def move_arm(self):
+        my_twist = Twist()
+        my_twist.linear.x = 0
+        my_twist.angular.z = 0
+        self.cmd_pub.publish(my_twist)
         rospy.sleep(3)
         if self.detect == 0: # picking up color
             #position to pick up
@@ -212,9 +218,9 @@ class Actions(object):
         self.detect = 1 - self.detect
 
     def image_callback(self, msg):
-        counter = 0
         if self.detect == 0: # detecting color
-            self.distance = 0.2
+            self.curr_target = self.actions[self.opt_actions[self.counter]]["object"]
+            self.distance = 0.15
             # converts the incoming ROS message to OpenCV format and HSV (hue, saturation, value)
             image = self.bridge.imgmsg_to_cv2(msg,desired_encoding='bgr8')
             
@@ -268,6 +274,8 @@ class Actions(object):
                 cx = int(M['m10']/M['m00'])
                 cy = int(M['m01']/M['m00'])
 
+                # MASK for color
+
                 # a red circle is visualized in the debugging window to indicate
                 # the center point of the yellow pixels
                 # hint: if you don't see a red circle, check your bounds for what is considered 'yellow'
@@ -277,7 +285,7 @@ class Actions(object):
                 #       by the center of the yellow pixels), implement
                 #       proportional control to have the robot follow
                 #       the yellow line
-                k_a = 1
+                k_a = 0.5
                 k_l = -0.1
                 e_a = (w/2 - cx)/w
                 if (abs(e_a) > 0.01):
@@ -289,7 +297,7 @@ class Actions(object):
                     my_twist.linear.x = 0.1
                 else:
                     dx = abs(self.distance - self.front_dist)
-                    if dx < 0.1:
+                    if dx < self.buffer:
                         my_twist.linear.x = 0
                     else:
                         e_l = (self.distance - self.front_dist)/self.front_dist
@@ -298,8 +306,9 @@ class Actions(object):
                 print("linear x", my_twist.linear.x )
             
             else:
-                my_twist.angular.z = 0.2
+                my_twist.angular.z = 0.5
         else: # detecting AR tag
+            self.curr_tag = self.actions[self.opt_actions[int(self.counter/2)]]["tag"]
             self.distance = 0.4
             image = self.bridge.imgmsg_to_cv2(msg,desired_encoding='bgr8')
             grayscale_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -338,7 +347,7 @@ class Actions(object):
                 #       by the center of the yellow pixels), implement
                 #       proportional control to have the robot follow
                 #       the yellow line
-                k_a = 1
+                k_a = 0.5
                 k_l = -0.1
                 e_a = (w/2 - cx)/w
                 if (abs(e_a) > 0.01):
@@ -350,7 +359,7 @@ class Actions(object):
                     my_twist.linear.x = 0.1
                 else:
                     dx = abs(self.distance - self.front_dist)
-                    if dx < 0.1:
+                    if dx < self.buffer:
                         my_twist.linear.x = 0
                     else:
                         e_l = (self.distance - self.front_dist)/self.front_dist
@@ -359,15 +368,17 @@ class Actions(object):
                 print("linear x", my_twist.linear.x )
             
             else:
-                my_twist.angular.z = 0.2
+                my_twist.angular.z = 0.5
             
         if (my_twist.angular.z == 0) and (my_twist.linear.x == 0):
-            counter += 1
-            print("counter", counter)
-        if counter == 1:
-            self.move_arm()
-            counter = 0
-            print ("move arm")
+            self.counter += 1
+            if self.counter < 6:
+                self.move_arm()
+                print ("move arm")
+            else:
+                my_twist.angular.z = 0
+                my_twist.linear.x = 0
+                print("finished!")
 
         self.cmd_pub.publish(my_twist)
 
@@ -382,19 +393,33 @@ class Actions(object):
         cv2.waitKey(3)
 
     def processing_scan(self, data):
+        self.front_dist = min(data.ranges)
         front_index = [0,1,2,3,4,359,358,357,356]
-        dist_sum = 0
-        count = 0
-        for index in front_index:
-            if data.ranges[index] != 0:
-                count+=1
-                dist_sum += data.ranges[index]
+        min_value = 0
+        for i in range(len(front_index)):
+            if i == (len(front_index)-1):
+                break
+            if data.ranges[front_index[i]] != 0:
+                if data.ranges[front_index[i]] < data.ranges[front_index[i+1]]:
+                    min_value = data.ranges[front_index[i]] 
+                else:
+                    min_value = data.ranges[front_index[i+1]] 
+        self.front_dist = min_value
+
+        #front_index = [0,1,2,3,4,359,358,357,356]
+        
+        # dist_sum = 0
+        # count = 0
+        # for index in front_index:
+        #     if data.ranges[index] != 0:
+        #         count+=1
+        #         dist_sum += data.ranges[index]
             
-        if dist_sum == 0:
-            self.front_dist = dist_sum
-        else:
-            dist_sum /= count
-            self.front_dist = dist_sum
+        # if dist_sum == 0:
+        #     self.front_dist = dist_sum
+        # else:
+        #     dist_sum /= count
+        #     self.front_dist = dist_sum
         
         #print("front dis at 0", data.ranges[0])
         print("front_dis", self.front_dist)
