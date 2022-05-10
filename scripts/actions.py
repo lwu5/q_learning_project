@@ -48,6 +48,19 @@ class Actions(object):
         # initalize the debugging window
         cv2.namedWindow("window", 1)
 
+        # a list of opitimized action numbers
+        self.opt_actions = []
+        self.distance = 0.4
+        self.curr_target = 1
+        self.curr_tag = 2
+        self.get_action()
+        self.front_dist = 5
+
+        self.detect = 0 # 0 = color, 1 = AR tag
+
+        # load DICT_4X4_50
+        self.aruco_dict = cv2.aruco.Dictionary_get(cv2.aruco.DICT_4X4_50)
+
         # subscribe to the robot's RGB camera data stream
         self.image_sub = rospy.Subscriber('camera/rgb/image_raw',
                 Image, self.image_callback)
@@ -56,27 +69,21 @@ class Actions(object):
         self.cmd_pub = rospy.Publisher('cmd_vel', Twist, queue_size = 10)
         self.scan_sub = rospy.Subscriber('/scan', LaserScan, self.processing_scan)
 
-        # # the interface to the group of joints making up the turtlebot3
-        # # openmanipulator arm
-        # self.move_group_arm = moveit_commander.MoveGroupCommander("arm")
+        # the interface to the group of joints making up the turtlebot3
+        # openmanipulator arm
+        self.move_group_arm = moveit_commander.MoveGroupCommander("arm")
 
-        # # the interface to the group of joints making up the turtlebot3
-        # # openmanipulator gripper
-        # self.move_group_gripper = moveit_commander.MoveGroupCommander("gripper")
+        # the interface to the group of joints making up the turtlebot3
+        # openmanipulator gripper
+        self.move_group_gripper = moveit_commander.MoveGroupCommander("gripper")
 
+        # Reset arm position
+        self.move_group_arm.go([0,-math.radians(30.0),0,0], wait=True)
 
-        # a list of opitimized action numbers
-        self.opt_actions = []
-        self.distance = 0.4
-        self.curr_target = 2
-        self.curr_tag = 1
-        self.get_action()
-        self.front_dist = 5
+        # First determine what how far the grippers should be from the base position.
+        # You can use the GUI to find appropriate values based on your need.
+        self.move_group_gripper.go([0.018,0.018], wait=True)
 
-        self.detect = 0 # 0 = color, 1 = AR tag
-
-        # load DICT_4X4_50
-        self.aruco_dict = cv2.aruco.Dictionary_get(cv2.aruco.DICT_4X4_50)
 
 
 
@@ -105,11 +112,102 @@ class Actions(object):
         print(self.opt_actions)
     
     def move_arm(self):
+        rospy.sleep(3)
         if self.detect == 0: # picking up color
-            self.move_group_arm.go([0, 0, 0, 0], wait=True)
-        
+            #position to pick up
+            arm_joint_goal = [
+                0.0,
+                math.radians(40.0),
+                0.0,#math.radians(10.0),
+                0.0#math.radians(-20.0)
+            ]
+
+            self.move_group_arm.go(arm_joint_goal, wait=True)
+
+            # The above should finish once the arm has fully moved.
+            # However, to prevent any residual movement,we call the following as well.
+            self.move_group_arm.stop()  
+
+            # We can use the following function to move the gripper
+            # self.move_group_gripper.go(gripper_joint_goal, wait=True)
+
+            # gripper_joint_goal is a list of 2 values in meters, 1 for the left gripper and one for the right
+            # wait=True ensures that the movement is synchronous
+
+            # Let's move the gripper based on what we have learned
+
+            # First determine what how far the grippers should be from the base position.
+            # You can use the GUI to find appropriate values based on your need.
+
+            rospy.sleep(3)
+
+            #position to pick up and squeeze
+
+            # Close the gripper
+            self.move_group_gripper.go([0.000,0.000], wait=True)
+
+            # The above should finish once the arm has fully moved.
+            # However, to prevent any residual movement,we call the following as well.
+            self.move_group_gripper.stop()
+
+            rospy.sleep(2)
+
+            #pick up
+            arm_joint_goal = [
+                0.0,
+                -math.radians(30.0),
+                0.0,#math.radians(10.0),
+                0.0#math.radians(-20.0)
+            ]
+            self.move_group_arm.go(arm_joint_goal, wait=True)
+
+            # The above should finish once the arm has fully moved.
+            # However, to prevent any residual movement,we call the following as well.
+            self.move_group_arm.stop()
+
+            rospy.sleep(3)
+                
         else: # dropping to AR tag
-            pass
+        #drop the paton
+            
+            arm_joint_goal = [
+                0.0,
+                math.radians(30.0),
+                0.0,#math.radians(10.0),
+                0.0#math.radians(-20.0)
+            ]
+            self.move_group_arm.go(arm_joint_goal, wait=True)
+
+            # The above should finish once the arm has fully moved.
+            # However, to prevent any residual movement,we call the following as well.
+            self.move_group_arm.stop() 
+
+            rospy.sleep(3)
+
+            # Move the gripper
+            self.move_group_gripper.go([0.018,0.018], wait=True)
+
+            # The above should finish once the arm has fully moved.
+            # However, to prevent any residual movement,we call the following as well.
+            self.move_group_gripper.stop()
+
+            rospy.sleep(2)
+
+            arm_joint_goal = [
+                0.0,
+                -math.radians(20.0),
+                0.0,#math.radians(10.0),
+                0.0#math.radians(-20.0)
+            ]
+            self.move_group_arm.go(arm_joint_goal, wait=True)
+
+            # The above should finish once the arm has fully moved.
+            # However, to prevent any residual movement,we call the following as well.
+            self.move_group_arm.stop() 
+
+
+            rospy.sleep(3)
+            
         
         self.detect = 1 - self.detect
 
@@ -179,7 +277,7 @@ class Actions(object):
                 #       by the center of the yellow pixels), implement
                 #       proportional control to have the robot follow
                 #       the yellow line
-                k_a = 5
+                k_a = 1
                 k_l = -0.1
                 e_a = (w/2 - cx)/w
                 if (abs(e_a) > 0.01):
@@ -200,7 +298,7 @@ class Actions(object):
                 print("linear x", my_twist.linear.x )
             
             else:
-                my_twist.angular.z = 0.5
+                my_twist.angular.z = 0.2
         else: # detecting AR tag
             self.distance = 0.4
             image = self.bridge.imgmsg_to_cv2(msg,desired_encoding='bgr8')
@@ -240,7 +338,7 @@ class Actions(object):
                 #       by the center of the yellow pixels), implement
                 #       proportional control to have the robot follow
                 #       the yellow line
-                k_a = 5
+                k_a = 1
                 k_l = -0.1
                 e_a = (w/2 - cx)/w
                 if (abs(e_a) > 0.01):
@@ -261,13 +359,15 @@ class Actions(object):
                 print("linear x", my_twist.linear.x )
             
             else:
-                my_twist.angular.z = 0.5
+                my_twist.angular.z = 0.2
             
         if (my_twist.angular.z == 0) and (my_twist.linear.x == 0):
             counter += 1
-        if counter > 8:
+            print("counter", counter)
+        if counter == 1:
             self.move_arm()
             counter = 0
+            print ("move arm")
 
         self.cmd_pub.publish(my_twist)
 
@@ -289,8 +389,6 @@ class Actions(object):
             if data.ranges[index] != 0:
                 count+=1
                 dist_sum += data.ranges[index]
-           
-            print("front_dist at index",index,":",data.ranges[index])
             
         if dist_sum == 0:
             self.front_dist = dist_sum
