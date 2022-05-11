@@ -4,6 +4,7 @@ Name: Timmy Lin, Liuhao Wu
 
 ---
 
+# \[UPDATED\] Final Writeup 5/11/2022
 # Intermediate Deliverable 4/30/2022
 ## Objective Description
 - The goal of this project is to let turtlebot learn to organize items in the environment by using reinforcement learning, specifically Q-learning algorithm. This project uses the robot's camera and LiDAR system to detect target items and moves the robot’s arm to pick up items and drop them off at the designated locations.
@@ -13,21 +14,21 @@ Name: Timmy Lin, Liuhao Wu
 
 ## Q-Learning Algorithm Description
 1. **Selecting and executing actions for the robot (or phantom robot) to take**
-- **Code Location**: Selection: Implemented with `a = int(self.action_matrix[self.s][next_state])` in function `q_learning()`. Execution: Implemented with `self.action_pub` in function `__init__` and `self.action_pub.publish(action_msg)` in function `q_learning()`.
+- **Code Location**: Selection: (`q_learning.py`) Implemented with `a = int(self.action_matrix[self.s][next_state])` in function `q_learning()`. Execution: Implemented with `self.action_pub` in function `__init__` and `self.action_pub.publish(action_msg)` in function `q_learning()`.
 - **Code Description**: Given the current state `s`, we first find valid indices of which values not equal to `-1` from `self.action_matrix[s]` using `s` as row and then we randomly pick one of them as our action and identify the next state based on its column. We then perform the action by publishing it to `/q_learning/robot_action` topic.
 
 2. **Updating the Q-matrix**
-- **Code Location**: Implemented with `self.q_matrix_pub` in function `__init__` and `self.q_matrix_pub.publish(q_matrix_msg)` in function `q_learning()`.
+- **Code Location**: (`q_learning.py`) Implemented with `self.q_matrix_pub` in function `__init__` and `self.q_matrix_pub.publish(q_matrix_msg)` in function `q_learning()`.
 - **Code Description**: Based on robot's current action and state, next state, and reward received from the environment, we follow the Q-learing algorithm to update the Q-matrix. We choose `alpha = 1` and `gamma = 0.8` and update the Q-matrix with the formula: `q_matrix[current state][action] += alpha * (reward + gamma * (max(q_matrix[next state]) -q_matrix[current state][action]))`.
 
 
 3. **Determining when to stop iterating through the Q-learning algorithm**
-- **Code Location**: Implemented with `while no_change_count < 300 or t > 1000`  in function `q_learning()` where `no_change_count` is cumulated under statement `if  abs(self.q_matrix[self.s][a] - curr_cell) < tolerance`.
+- **Code Location**: (`q_learning.py`) Implemented with `while no_change_count < 300 or t > 1000`  in function `q_learning()` where `no_change_count` is cumulated under statement `if  abs(self.q_matrix[self.s][a] - curr_cell) < tolerance`.
 - **Code Description**: We set up `0.00001` as tolerance threshold. If the value change of the q_matrix is within tolerance, we will consider it as unchanged. Once the count of unchanged values exceeds `300` in the while loop, we consider the q_matrix converged. If the total iteration hits `1000`, then we consider we are not able to generate a q matrix and the q_learning training failed.
 
 4. **Executing the path most likely to lead to receiving a reward after the Q-matrix has converged on the simulated Turtlebot3 robot**
-- **Code Location**: (More to update on final writeup, after implementing the perception and control)
-- **Code Description**: (More to update on final writeup, after implementing the perception and control)
+- **Code Location**: Implemented with function `get_action()` in `actions.py`.
+- **Code Description**: From state 0, we choose the largest value in that row as our first optimized action and add it to the `opt_action` list. Then based on this first optimized action, we update the state value (i.e., state value is a list of three values, representing the colors’ positions). We match this state value back to the state number and again, find the largest value in that row as our second optimized action, same for the third optimized action.
 
 ---
 
