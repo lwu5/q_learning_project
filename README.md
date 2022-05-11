@@ -56,6 +56,28 @@ Name: Timmy Lin, Liuhao Wu
 - **Code Location**:
 - **Code Description**:
 
+## Challenges
+Describe the challenges you faced and how you overcame them.
+
+- Output csv with training.launch: We had difficulty outputting the csv file while launching the train.launch file. We eventually figured out how to solve this problem by setting the current working directory to cwd="node" in our training.launch, then it worked.
+- Lagging update of the camera image: The connection of the `intro-robot` router is sometimes unstable, which caused our camera to be unable to update as quickly as possible. Whenever this happens, we need to move our color and AR tags into CSIL5 to test our implementation.
+- Noise pixels in robot perception: The robot is sometimes distracted by random pixels in its environment while it is detecting the color. To solve this, we need a set threshold for the number of detected pixels to determine whether it is a paton or just some noise in the environment. 
+- Location to run our implementation: When running our robot, we need to ensure that there are no other patons and AR tags near the robot. We also need to ensure that there are no similar-colored objects near the robot as well. For example, the bricks that we used to build the maze are often a distraction for the robot to recognize the color of the paton because of the bricks’ similar colors.
+
+## Future work
+If you had more time, how would you improve your implementation?
+
+- More adjustment in robot perception: If we have more time, we would attempt to adjust the color threshold to detect each color even more precisely. For example, if we didn’t turn on the lights in CSIL 5, our robot’s color detection might be influenced. 
+- More adjustment in robot’s behavior of picking targets up: We would also spend more time thinking about how to let the robot pick up the paton more precisely and smoothly. For example, in future work, we can let our robot drop the paton exactly on the ground with no tilt and in a quick amount of time.
+- More adjustment in robot travel: We will experiment more with the k values that we currently implement in our proportional control for the robot's sensory motor, so that our robot can travel to the targets more smoothly and more quickly.
+
+## Takeaways
+What are your key takeaways from this project that would help you/others in future robot programming assignments working in pairs? For each takeaway, provide a few sentences of elaboration.
+
+- Image Processing: In this project, we learned how to expand upon what we have learned in Lab B Line Follower to detect three different paton colors and three different AR tags at the same time. With this skill, we can now rely more on the robot’s camera to detect even more objects in the future, such as using it in the final project.  
+- Robot Arm/Gripper control: We learned how to control the angles from the four joints of the robot arm and the width of the robot gripper in this project. This knowledge would be potentially helpful for our final project if we plan to utilize the robot arm to pick up objects or move the arm to signal gestures.
+- Robot Environment Setup: A very important skill that we learned in this project is setting up the robot environment. In previous warmup projects and particle filter projects, the robot performance did not rely on the robot’s image perception. In this project, the robot highly relies on image processing to find the color and AR tag, thus we need to ensure that the robot environment does not contain similar colors to the patons and make sure that the AR tags are clearly visible (e.g. the paper of the tag is not bent or folded). These considerations will be helpful for us when setting up our robot environment for the final project.
+
 ---
 
 # Implementation Plan 4/26/2022
