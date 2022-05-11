@@ -315,8 +315,8 @@ class Actions(object):
             self.distance = 0.4
             image = self.bridge.imgmsg_to_cv2(msg,desired_encoding='bgr8')
             grayscale_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-            n_white_pix = np.sum(grayscale_image == 255)
-            print("n_white_pix in AR tag:", n_white_pix)
+            #n_white_pix = np.sum(grayscale_image == 255)
+            #print("n_white_pix in AR tag:", n_white_pix)
 
             h, w, d = image.shape
             # search for tags from DICT_4X4_50 in a GRAYSCALE image
@@ -341,7 +341,7 @@ class Actions(object):
             
 
             # if there are any yellow pixels found
-            if tag_found and n_white_pix > 100:
+            if tag_found:
 
                 # a red circle is visualized in the debugging window to indicate
                 # the center point of the yellow pixels
