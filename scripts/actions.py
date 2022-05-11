@@ -272,7 +272,7 @@ class Actions(object):
             my_twist = Twist()
 
             # if there are any yellow pixels found
-            if M['m00'] > 0 and n_white_pix > 100:
+            if M['m00'] > 0 and n_white_pix > 200:
                 # center of the yellow pixels in the image
                 cx = int(M['m10']/M['m00'])
                 cy = int(M['m01']/M['m00'])
@@ -315,8 +315,6 @@ class Actions(object):
             self.distance = 0.4
             image = self.bridge.imgmsg_to_cv2(msg,desired_encoding='bgr8')
             grayscale_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-            #n_white_pix = np.sum(grayscale_image == 255)
-            #print("n_white_pix in AR tag:", n_white_pix)
 
             h, w, d = image.shape
             # search for tags from DICT_4X4_50 in a GRAYSCALE image
