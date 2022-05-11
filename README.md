@@ -30,6 +30,32 @@ Name: Timmy Lin, Liuhao Wu
 - **Code Location**: Implemented with function `get_action()` in `actions.py`.
 - **Code Description**: From state 0, we choose the largest value in that row as our first optimized action and add it to the `opt_action` list. Then based on this first optimized action, we update the state value (i.e., state value is a list of three values, representing the colors’ positions). We match this state value back to the state number and again, find the largest value in that row as our second optimized action, same for the third optimized action.
 
+## Robot Perception Description
+1. **Identifying the locations and identities of each of the colored objects**
+- **Code Location**:
+- **Code Description**:
+
+2. **Identifying the locations and identities of each of the AR tags**
+- **Code Location**:
+- **Code Description**:
+
+## Robot Manipulation and Movement
+1. **Moving to the right spot in order to pick up a colored object**
+- **Code Location**:
+- **Code Description**:
+
+2. **Picking up the colored object**
+- **Code Location**:
+- **Code Description**:
+
+3. **Moving to the desired destination (AR tag) with the colored object**
+- **Code Location**:
+- **Code Description**:
+
+4. **Putting the colored object back down at the desired destination**
+- **Code Location**:
+- **Code Description**:
+
 ---
 
 # Implementation Plan 4/26/2022
