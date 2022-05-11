@@ -1,0 +1,14 @@
+cd ~/catkin_ws && catkin_make
+source devel/setup.bash
+
+
+ssh pi@192.168.0.106
+set_ip <3 digits>
+bringup 
+bringup_cam
+
+rosrun image_transport republish compressed in:=raspicam_node/image raw out:=camera/rgb/image_raw
+roslaunch turtlebot3_manipulation_bringup turtlebot3_manipulation_bringup.launch
+roslaunch turtlebot3_manipulation_moveit_config move_group.launch
+rosrun q_learning_project actions.py
+rostopic pub -1 /cmd_vel geometry_msgs/Twist  '{linear:  {x: 0.0, y: 0.0, z: 0.0}, angular: {x: 0.0,y: 0.0,z: 0.0}}'
