@@ -1,7 +1,15 @@
 cd ~/catkin_ws && catkin_make
 source devel/setup.bash
 
+First terminal: 
+hostname -I
+nano ~/.bashrc (check IP)
+source ~/.bashrc
 
+Second Terminal:
+roscore
+
+Third Terminal:
 ssh pi@192.168.0.106
 set_ip <3 digits>
 bringup 
