@@ -255,6 +255,9 @@ class Actions(object):
             
             # this erases all pixels that aren't yellow
             mask = cv2.inRange(image, lower_color, upper_color)
+            n_white_pix = np.sum(mask == 255)
+            print("n_white_pix in color:", n_white_pix)
+
 
             # this limits our search scope to only view a slice of the image near the ground
             h, w, d = image.shape
@@ -269,7 +272,7 @@ class Actions(object):
             my_twist = Twist()
 
             # if there are any yellow pixels found
-            if M['m00'] > 0:
+            if M['m00'] > 0 and n_white_pix > 100:
                 # center of the yellow pixels in the image
                 cx = int(M['m10']/M['m00'])
                 cy = int(M['m01']/M['m00'])
@@ -312,6 +315,8 @@ class Actions(object):
             self.distance = 0.4
             image = self.bridge.imgmsg_to_cv2(msg,desired_encoding='bgr8')
             grayscale_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+            n_white_pix = np.sum(grayscale_image == 255)
+            print("n_white_pix in AR tag:", n_white_pix)
 
             h, w, d = image.shape
             # search for tags from DICT_4X4_50 in a GRAYSCALE image
@@ -336,7 +341,7 @@ class Actions(object):
             
 
             # if there are any yellow pixels found
-            if tag_found:
+            if tag_found and n_white_pix > 100:
 
                 # a red circle is visualized in the debugging window to indicate
                 # the center point of the yellow pixels
