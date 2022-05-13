@@ -409,12 +409,12 @@ class Actions(object):
         # we only consider the front 9 degrees because the robot will always adjust itself
         #    to face the target before performing any arm actions
         front_index = [0,1,2,3,4,359,358,357,356]
-        min_value = 0
-        for i in range(len(front_index)):
-            if i == (len(front_index)-1):
+        min_value = 0 #initialize min value as 0
+        for i in range(len(front_index)): # loop through the degrees
+            if i == (len(front_index)-1): # if we loop to the last degree, we exit the loop
                 break
-            if data.ranges[front_index[i]] != 0:
-                if data.ranges[front_index[i]] < data.ranges[front_index[i+1]]:
+            if data.ranges[front_index[i]] != 0: #if each value in the degree is not zero
+                if data.ranges[front_index[i]] < data.ranges[front_index[i+1]]: # compare the current degree and next to find the smaller one
                     min_value = data.ranges[front_index[i]] 
                 else:
                     min_value = data.ranges[front_index[i+1]] 
@@ -422,7 +422,7 @@ class Actions(object):
         
 
     def run(self):
-        rospy.spin()
+        rospy.spin() # keep the robot running
 
 if __name__ == "__main__":
     
