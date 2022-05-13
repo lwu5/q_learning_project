@@ -10,7 +10,7 @@ Name: Timmy Lin, Liuhao Wu
 ---
 
 # \[UPDATED\] Final Writeup 5/11/2022
-# Intermediate Deliverable 4/30/2022
+Intermediate Deliverable 4/30/2022
 ## Objective Description
 - The goal of this project is to let turtlebot learn to organize items in the environment by using reinforcement learning, specifically Q-learning algorithm. This project uses the robot's camera and LiDAR system to detect target items and moves the robot’s arm to pick up items and drop them off at the designated locations.
 
