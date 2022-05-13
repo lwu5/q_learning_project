@@ -4,7 +4,7 @@ Name: Timmy Lin, Liuhao Wu
 
 ---
 
-# Behavior
+# Behavior (Gif)
 ![q_learning](https://user-images.githubusercontent.com/66953378/168196391-a060249e-4e66-4fd8-bd39-7492959cad5c.GIF)
 
 ---
@@ -48,19 +48,19 @@ Name: Timmy Lin, Liuhao Wu
 ## Robot Manipulation and Movement
 1. **Moving to the right spot in order to pick up a colored object**
 - **Code Location**: Implemented with `self.detect == 0` condition in `image_callback()` function (propotional control is after color identification) in `actions.py`.
-- **Code Description**:
+- **Code Description**: We have a list of three optimized actions named `self.opt_actions` so each time we update the current target `self.curr_target` based on a counter as an index to access the optimized actions list. After the robot identifies the color, we use proportional control to let the robot face the center of the color object (i.e., keep the center of the colored pixels in the middle of the screen) and keep moving forward until it is close enough to the color (i.e., 0.18 meters + buffer).
 
 2. **Picking up the colored object**
 - **Code Location**: Implemented with `self.detect == 0` condition in `move_arm()` function in `actions.py`.
-- **Code Description**: 
+- **Code Description**: The robot arm is originally set to `arm_joint_goal = [0.0, math.radians(30.0), 0.0, 0.0]` where the second joint raises the entire arm up. The gripper is also set to the widest at the beginning. When the robot stopped in front of the colored object, it would first lower the second joint. Then, it would squeeze its gripper so that it could hold the colored object. Lastly, the robot would raise its arm up to the original location so that the color is not blocking the camera of the robot.
 
 3. **Moving to the desired destination (AR tag) with the colored object**
 - **Code Location**: Implemented with `self.detect == 1` condition in `image_callback()` function (propotional control is after AR tag identification) in `actions.py`.
-- **Code Description**:
+- **Code Description**: We have a list of three optimized actions named `self.opt_actions` so each time we update the current tag `self.curr_tag` based on a counter as an index to access the optimized actions list. After the robot identifies the tag, we use proportional control to let the robot face the center of the tag (i.e., keep the center of the tag in the middle of the screen) and keep moving forward until it is close enough to the tag (i.e., 0.4 meters + buffer).
 
 4. **Putting the colored object back down at the desired destination**
 - **Code Location**: Implemented with `self.detect == 1` condition in `move_arm()` function in `actions.py`.
-- **Code Description**:
+- **Code Description**: Once the robot is stopped around 0.4 meters away from the AR tag, the robot would again lower its second joint and place the colored object to the ground. Then, it would release its gripper so that the color can stand still on the ground. Lastly, the robot would raise its arm to the original position and step back which prevents itself from hitting the object.
 
 ## Challenges
 Describe the challenges you faced and how you overcame them.
