@@ -4,6 +4,11 @@ Name: Timmy Lin, Liuhao Wu
 
 ---
 
+# Behavior
+- ![q_learning](https://user-images.githubusercontent.com/66953378/168196391-a060249e-4e66-4fd8-bd39-7492959cad5c.GIF)
+
+---
+
 # \[UPDATED\] Final Writeup 5/11/2022
 # Intermediate Deliverable 4/30/2022
 ## Objective Description
