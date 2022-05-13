@@ -5,7 +5,7 @@ Name: Timmy Lin, Liuhao Wu
 ---
 
 # Behavior
-- ![q_learning](https://user-images.githubusercontent.com/66953378/168196391-a060249e-4e66-4fd8-bd39-7492959cad5c.GIF)
+![q_learning](https://user-images.githubusercontent.com/66953378/168196391-a060249e-4e66-4fd8-bd39-7492959cad5c.GIF)
 
 ---
 
@@ -15,7 +15,7 @@ Name: Timmy Lin, Liuhao Wu
 - The goal of this project is to let turtlebot learn to organize items in the environment by using reinforcement learning, specifically Q-learning algorithm. This project uses the robot's camera and LiDAR system to detect target items and moves the robot’s arm to pick up items and drop them off at the designated locations.
 
 ## High-Level Description
-- We used reinforcement learning to train our Q-matrix during the process of implementing the Q-Learning Algorithm. The 2D Q-matrix is first initialized to zero. Then we keep running the following steps for each iteration till Q-matrix converges: first, randomly selecting a valid action based on current state, followed by performing the action and receiving reward from the environment; and then based on current action and state, we update our Q-matrix and switch to next state. Once the Q-matrix converges, we move from the training to the perception and control stage. (More to update on final writeup, after implementing the perception and control)
+- We used reinforcement learning to train our Q-matrix during the process of implementing the Q-Learning Algorithm. The 2D Q-matrix is first initialized to zero. Then we keep running the following steps for each iteration till Q-matrix converges: first, randomly selecting a valid action based on current state, followed by performing the action and receiving reward from the environment; and then based on current action and state, we update our Q-matrix and switch to next state. Once the Q-matrix converges, we move from the training to the perception and control stage. From the converged Q-matrix, we find that the best path is to action number 3 -> 2 -> 7. Thus, we first let the robot to perform action number 3 (move green object to AR tag 1). Then, we let the robot perform action number 2 (move pink object to AR tag 3). Lastly, we let the robot perform action number 7 (move blue object to AR tag 2).
 
 ## Q-Learning Algorithm Description
 1. **Selecting and executing actions for the robot (or phantom robot) to take**
@@ -43,7 +43,7 @@ Name: Timmy Lin, Liuhao Wu
 
 2. **Identifying the locations and identities of each of the AR tags**
 - **Code Location**:
-- **Code Description**:
+- **Code Description**: We identify the AR tags in the same image_callback function when `self.detect` flag is equal to 1. We search for AR tags from DICT_4X4_50 in a GRAYSCALE image. For the locations of the object, we take the non-zero min value of the robot's front 9-degree data scan ranges. The reason why we chose only the front 9 degrees was because we would only need the tags' locations when they can be seen in the camera (i.e., we spin the robot to face the tag if the tag isnt seen in the camera), so the object is supposed to be in front of the robot.
 
 ## Robot Manipulation and Movement
 1. **Moving to the right spot in order to pick up a colored object**
