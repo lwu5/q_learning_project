@@ -38,28 +38,28 @@ Name: Timmy Lin, Liuhao Wu
 ## Robot Perception Description
 ## Robot Perception Description
 1. **Identifying the locations and identities of each of the colored objects**
-- **Code Location**: Implemented with `image_callback()` function for identifying identities of the colors and `processing_scan()` function for identifying locations of the colors in `actions.py`.
+- **Code Location**: Implemented with `self.detect == 0` condition in `image_callback()` function for identifying identities of the colors and `processing_scan()` function for identifying locations of the colors in `actions.py`.
 - **Code Description**: When `self.detect == 0`, the robot camera starts identifying `self.curr_target` based on pre-set color bounds. We create a mask that erases all pixels that do not fall into the bounds. If the number of the color pixels we want hit a certain threthold, we would consider we find the target colored object and set a red circle as the center of the yellow pixels in the image. For the locations of the object, we take the non-zero min value of the robot's front 9-degree data scan ranges. The reason why we chose only the front 9 degrees was because we would only need the colored objects' locations when they can be seen in the camera (i.e., we spin the robot to face the color if the color isnt seen in the camera), so the object is supposed to be in front of the robot.
 
 2. **Identifying the locations and identities of each of the AR tags**
-- **Code Location**:
+- **Code Location**: Implemented with `self.detect == 1` condition in `image_callback()` function for identifying identities of the colors and `processing_scan()` function for identifying locations of the tags in `actions.py`.
 - **Code Description**: We identify the AR tags in the same image_callback function when `self.detect` flag is equal to 1. We search for AR tags from DICT_4X4_50 in a GRAYSCALE image. For the locations of the object, we take the non-zero min value of the robot's front 9-degree data scan ranges. The reason why we chose only the front 9 degrees was because we would only need the tags' locations when they can be seen in the camera (i.e., we spin the robot to face the tag if the tag isnt seen in the camera), so the object is supposed to be in front of the robot.
 
 ## Robot Manipulation and Movement
 1. **Moving to the right spot in order to pick up a colored object**
-- **Code Location**:
+- **Code Location**: Implemented with `self.detect == 0` condition in `image_callback()` function (propotional control is after color identification) in `actions.py`.
 - **Code Description**:
 
 2. **Picking up the colored object**
-- **Code Location**:
-- **Code Description**:
+- **Code Location**: Implemented with `self.detect == 0` condition in `move_arm()` function in `actions.py`.
+- **Code Description**: 
 
 3. **Moving to the desired destination (AR tag) with the colored object**
-- **Code Location**:
+- **Code Location**: Implemented with `self.detect == 1` condition in `image_callback()` function (propotional control is after AR tag identification) in `actions.py`.
 - **Code Description**:
 
 4. **Putting the colored object back down at the desired destination**
-- **Code Location**:
+- **Code Location**: Implemented with `self.detect == 1` condition in `move_arm()` function in `actions.py`.
 - **Code Description**:
 
 ## Challenges
