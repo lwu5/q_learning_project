@@ -3,16 +3,15 @@
 import rospy, cv2, cv_bridge
 import numpy as np
 import os
-from sensor_msgs.msg import Image
-from geometry_msgs.msg import Twist, Vector3
-from sensor_msgs.msg import LaserScan
-# import the moveit_commander, which allows us to control the arms
-import moveit_commander, math
+from sensor_msgs.msg import Image # for image subscripber
+from geometry_msgs.msg import Twist, Vector3 # for cmd_vel
+from sensor_msgs.msg import LaserScan # for LiDAR
+import moveit_commander, math # import the moveit_commander, which allows us to control the arms
 
 # Path of directory on where this file is located
 path_prefix = os.path.dirname(__file__) + "/action_states/"
 
-# get the optimized action based on converged q learning matrix
+# perform the optimized action based on converged q learning matrix
 class Actions(object):
     def __init__(self):
         # Initialize this node
@@ -21,7 +20,7 @@ class Actions(object):
         # Fetch actions. These are the only 9 possible actions the system can take.
         # self.actions is an array of dictionaries where the row index corresponds
         # to the action number, and the value has the following form:
-        # { object: "pink", tag: 1}
+        # { object: 1, tag: 1}
         colors = ["pink", "green", "blue"]
         self.actions = np.loadtxt(path_prefix + "actions.txt")
         self.actions = list(map(
@@ -48,17 +47,28 @@ class Actions(object):
         # initalize the debugging window
         cv2.namedWindow("window", 1)
 
-        # a list of opitimized action numbers
+        # a list of three opitimized action numbers
         self.opt_actions = []
+        # target distance between robot and color / tag (value updated later)
         self.distance = 0.4
+        # bufffer distance
         self.buffer = 0.05
+        # current colored object (value update every iteration)
         self.curr_target = 1
+        # current AR tag (value update every iteration)
         self.curr_tag = 2
+        
+        # get the optimized three action numbers based on converged q_matrix
         self.get_action()
+        
+        # the min distance of the robot front (front 9-degrees)
         self.front_dist = 5
+        # counter of how many actions performed
         self.counter = 0
+        # completion flag; true - finished
         self.finished = False
-        self.detect = 0 # 0 = color, 1 = AR tag
+        # detection flag; 0 = color, 1 = AR tag
+        self.detect = 0
 
         # load DICT_4X4_50
         self.aruco_dict = cv2.aruco.Dictionary_get(cv2.aruco.DICT_4X4_50)
@@ -67,8 +77,9 @@ class Actions(object):
         self.image_sub = rospy.Subscriber('camera/rgb/image_raw',
                 Image, self.image_callback)
         
-        # TODO: set up cmd_vel publisher 
+        # set up cmd_vel publisher 
         self.cmd_pub = rospy.Publisher('cmd_vel', Twist, queue_size = 10)
+        # set up scan subscriber 
         self.scan_sub = rospy.Subscriber('/scan', LaserScan, self.processing_scan)
 
         # the interface to the group of joints making up the turtlebot3
@@ -79,26 +90,26 @@ class Actions(object):
         # openmanipulator gripper
         self.move_group_gripper = moveit_commander.MoveGroupCommander("gripper")
 
-        # Reset arm position
+        # set initial arm position 
         self.move_group_arm.go([0,-math.radians(30.0),0,0], wait=True)
 
-        # First determine what how far the grippers should be from the base position.
-        # You can use the GUI to find appropriate values based on your need.
+        # set initial gripper opening width
         self.move_group_gripper.go([0.018,0.018], wait=True)
 
-
-
-
+    # get the three optimized actions from the converged q matrix
     def get_action(self):
         # the first action is action that gives the greatest 
         #   value when q matrix is in state 0
         opt_action = self.q_matrix[0].argmax()
+        
         # add the first action to the optimized action list
         self.opt_actions.append(opt_action)
+        
         # initial state value should be [0,0,0], which means
         #   every thing is at the origin, because the robot 
         #   has not moved anything yet
         state = [0,0,0]
+        
         for j in range(2): # we loop twice becase there are two more actions we need to find
                            #    we have already find the first action above
             # the state changes each time the robot performs an action
@@ -111,16 +122,21 @@ class Actions(object):
             opt_action = self.q_matrix[state_ind].argmax()
             # add the action to the optimized action list
             self.opt_actions.append(opt_action)
+        
         print("optimized actions:", self.opt_actions)
     
+    # move the robot arm to pick up / drop color
     def move_arm(self):
+        
+        # stop robot movement
         my_twist = Twist()
         my_twist.linear.x = 0
         my_twist.angular.z = 0
         self.cmd_pub.publish(my_twist)
         rospy.sleep(3)
+        
         if self.detect == 0: # picking up color
-            #position to pick up
+            # move the arm to fetch the object
             arm_joint_goal = [
                 0.0,
                 math.radians(30.0),
@@ -133,32 +149,17 @@ class Actions(object):
             # The above should finish once the arm has fully moved.
             # However, to prevent any residual movement,we call the following as well.
             self.move_group_arm.stop()  
-
-            # We can use the following function to move the gripper
-            # self.move_group_gripper.go(gripper_joint_goal, wait=True)
-
-            # gripper_joint_goal is a list of 2 values in meters, 1 for the left gripper and one for the right
-            # wait=True ensures that the movement is synchronous
-
-            # Let's move the gripper based on what we have learned
-
-            # First determine what how far the grippers should be from the base position.
-            # You can use the GUI to find appropriate values based on your need.
-
             rospy.sleep(3)
 
-            #position to pick up and squeeze
-
-            # Close the gripper
+            # close gripper
             self.move_group_gripper.go([0.000,0.000], wait=True)
 
-            # The above should finish once the arm has fully moved.
+            # The above should finish once the gripper has closed.
             # However, to prevent any residual movement,we call the following as well.
             self.move_group_gripper.stop()
-
             rospy.sleep(2)
 
-            #pick up
+            # pick up the object
             arm_joint_goal = [
                 0.0,
                 -math.radians(30.0),
@@ -173,9 +174,8 @@ class Actions(object):
 
             rospy.sleep(3)
                 
-        else: # dropping to AR tag
-        #drop the paton
-            
+        else: # dropping the color to AR tag
+            # move the object close to the ground
             arm_joint_goal = [
                 0.0,
                 math.radians(30.0),
@@ -187,18 +187,17 @@ class Actions(object):
             # The above should finish once the arm has fully moved.
             # However, to prevent any residual movement,we call the following as well.
             self.move_group_arm.stop() 
-
             rospy.sleep(3)
 
-            # Move the gripper
+            # open the gripper to drop the object
             self.move_group_gripper.go([0.018,0.018], wait=True)
 
             # The above should finish once the arm has fully moved.
             # However, to prevent any residual movement,we call the following as well.
             self.move_group_gripper.stop()
-
             rospy.sleep(2)
 
+            # move up the arm after dropping
             arm_joint_goal = [
                 0.0,
                 -math.radians(25.0),
@@ -211,7 +210,8 @@ class Actions(object):
             # However, to prevent any residual movement,we call the following as well.
             self.move_group_arm.stop() 
             rospy.sleep(3) 
-
+            
+            # robot steps back to prevent itself from hitting the dropped color
             my_twist = Twist()
             my_twist.linear.x = -0.1
             self.cmd_pub.publish(my_twist)
@@ -219,103 +219,88 @@ class Actions(object):
             my_twist.linear.x = 0
             self.cmd_pub.publish(my_twist)
         
+        # change the flag
         self.detect = 1 - self.detect
 
+    # identify the color / AR tag and move the robot close to the color / tag
     def image_callback(self, msg):
-        if self.finished == True:
+        
+        if self.finished == True: # if finished three actions
+            # do nothing
             my_twist = Twist()
             my_twist.angular.z = 0
             my_twist.linear.x = 0
             print("finished!")
-        else: 
+        else: # three optimized actions havent been finished
             if self.detect == 0: # detecting color
+                # update the current target based on the counter as an index of the optimized action lists
                 self.curr_target = self.actions[self.opt_actions[self.counter]]["object"]
+                # update the target distance for getting the color
                 self.distance = 0.18
                 # converts the incoming ROS message to OpenCV format and HSV (hue, saturation, value)
                 image = self.bridge.imgmsg_to_cv2(msg,desired_encoding='bgr8')
                 hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-
-                # TODO: define the upper and lower bounds for what should be considered 'yellow'
-                # Note: see class page for hints on this
-                #lower_yellow = np.array([10, 80, 80]) #TODO
-                #upper_yellow = np.array([50, 240, 240]) #TODO
                 
-
-                if self.curr_target == 0:
-                    #pink RGB - 254, 4, 153
-                    lower_color = (110, 80, 100) #(100, 0, 80)
-                    upper_color = (170, 255, 255) #(255,100,230)
-                    
-                    
-                elif self.curr_target ==1:
-                    #green RGB #TODO
+                # define the upper and lower bounds for colors respectively
+                if self.curr_target == 0: # pink
+                    lower_color = (110, 80, 100) 
+                    upper_color = (170, 255, 255) 
+                elif self.curr_target == 1: # green
                     lower_color = np.array([10,80,100])
                     upper_color = np.array([50,255,255])
-                else:
-                    #blue RGB #TODO
+                else: # blue
                     lower_color = np.array([40,80,100])
                     upper_color = np.array([110,255,255])
                     
-
-                #RGB
-                #Pink - 254, 4, 153
-                #Green - 169, 207, 0
-                #Blue - 0, 192, 228
-
-
-                
-                # this erases all pixels that aren't yellow
+                # this erases all pixels that aren't target color
                 mask = cv2.inRange(hsv, lower_color, upper_color)
+                # count the number of detected colored pixels from the mask
                 n_white_pix = np.sum(mask == 255)
 
-                # this limits our search scope to only view a slice of the image near the ground
+                # image data
                 h, w, d = image.shape
-                # search_top = int(3*h/4)
-                # search_bot = int(3*h/4 + 20)
-                # mask[0:search_top, 0:w] = 0
-                # mask[search_bot:h, 0:w] = 0
 
-                # using moments() function, the center of the yellow pixels is determined
+                # using moments() function, the center of the colored pixels is determined
                 M = cv2.moments(mask)
 
+                # initialize twist msg
                 my_twist = Twist()
 
-                # if there are any yellow pixels found
+                # if there are any colored pixels found AND the number colored pixels hits a threshold
                 if M['m00'] > 0 and n_white_pix > 150:
-                    # center of the yellow pixels in the image
+                    # center of the colored pixels in the image
                     cx = int(M['m10']/M['m00'])
                     cy = int(M['m01']/M['m00'])
-
-                    # MASK for color
-
+                    
                     # a red circle is visualized in the debugging window to indicate
-                    # the center point of the yellow pixels
-                    # hint: if you don't see a red circle, check your bounds for what is considered 'yellow'
+                    # the center point of the colored pixels
                     cv2.circle(image, (cx, cy), 10, (0,0,255), -1)
 
-                    # TODO: based on the location of the line (approximated
-                    #       by the center of the yellow pixels), implement
-                    #       proportional control to have the robot follow
-                    #       the yellow line
+                    # based on the location of the line (approximated
+                    #   by the center of the colored pixels), implement
+                    #   proportional control to have the robot move towards
+                    #   and face the colored object 
                     k_a = 0.5
                     k_l = -0.1
                     e_a = (w/2 - cx)/w
-                    if (abs(e_a) > 0.01):
+                    
+                    if (abs(e_a) > 0.01): # if the robot is not facing the target
                         my_twist.angular.z = k_a * e_a
-                    else:
+                    else: # the robot is roughly facing the target
                         my_twist.angular.z = 0
                     
-                    if self.front_dist == 0:
+                    if self.front_dist == 0: # the robot does not detect anything in the front
                         my_twist.linear.x = 0.1
-                    else:
-                        dx = abs(self.distance - self.front_dist)
-                        if dx < self.buffer:
+                    else: # the robot detects the object in the front
+                        dx = abs(self.distance - self.front_dist) # the distane the robot still needs to travel
+                                                                  #    to hit the target distance
+                        if dx < self.buffer: # if the robot hits the target distance
                             my_twist.linear.x = 0
-                        else:
+                        else: # if the robot is far from the target distance
                             e_l = (self.distance - self.front_dist)/self.front_dist
                             my_twist.linear.x = k_l * e_l
                 
-                else:
+                else: # the robot cant find the target object in the camera view
                     my_twist.angular.z = 0.5
             else: # detecting AR tag
                 self.curr_tag = self.actions[self.opt_actions[self.counter-1]]["tag"]
