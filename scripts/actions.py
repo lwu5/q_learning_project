@@ -302,88 +302,112 @@ class Actions(object):
                 
                 else: # the robot cant find the target object in the camera view
                     my_twist.angular.z = 0.5
+                    
             else: # detecting AR tag
+                # update the current tag based on the counter as an index of the optimized action lists
                 self.curr_tag = self.actions[self.opt_actions[self.counter-1]]["tag"]
+                # update the target distance for moving towards tag
                 self.distance = 0.4
+                # converts the incoming ROS message to OpenCV format and gray
                 image = self.bridge.imgmsg_to_cv2(msg,desired_encoding='bgr8')
                 grayscale_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
+                # image data
                 h, w, d = image.shape
+                
                 # search for tags from DICT_4X4_50 in a GRAYSCALE image
                 corners, ids, rejected_points = cv2.aruco.detectMarkers(grayscale_image, self.aruco_dict)
                 
+                # initialize twist msg
                 my_twist = Twist()
-
+                
+                # corners is a 4D array of shape (n, 1, 4, 2), where n is the number of tags detected
+                # each entry is a set of four (x, y) pixel coordinates corresponding to the
+                # location of a tag's corners in the image
+                # ids is a 2D array array of shape (n, 1)
+                # each entry is the id of a detected tag in the same order as in corners
+                
+                # we take the average x, y value of the location of the four pixel coordinates of 
+                # the target AR tag as the cx cy (i.e., center of the red dot)
                 tot_x = 0
                 tot_y = 0
                 cx = 0
                 cy = 0
                 tag_found = False
-                if ids is not None:
-                    for i in range(len(ids)):
-                        if ids[i][0] == self.curr_tag:
-                            for j in range(4):
+                if ids is not None: # if camera detects some AR tags
+                    for i in range(len(ids)): # loop through all detected AR tags
+                        if ids[i][0] == self.curr_tag: # if find the target AR tag
+                            for j in range(4): # loop through the x,y location of the four pixel coordinates 
                                 tot_x += corners[i][0][j][0] #x
                                 tot_y += corners[i][0][j][1] #y
-                            cx = int(tot_x / 4)
-                            cy = int(tot_y / 4)
-                            tag_found = True
+                            cx = int(tot_x / 4) # take the average x value as cx
+                            cy = int(tot_y / 4) # take the average y value as cy
+                            tag_found = True # update the tag_found flag
                 
 
-                # if there are any yellow pixels found
+                # if find the target AR tag
                 if tag_found:
 
                     # a red circle is visualized in the debugging window to indicate
-                    # the center point of the yellow pixels
-                    # hint: if you don't see a red circle, check your bounds for what is considered 'yellow'
+                    # the center point of the target AR tag
                     cv2.circle(image, (cx, cy), 10, (0,0,255), -1)
 
-                    # TODO: based on the location of the line (approximated
-                    #       by the center of the yellow pixels), implement
-                    #       proportional control to have the robot follow
-                    #       the yellow line
+                    # based on the location of the line (approximated
+                    #   by the center of the colored pixels), implement
+                    #   proportional control to have the robot move towards
+                    #   and face the target AR tag 
                     k_a = 0.5
                     k_l = -0.1
                     e_a = (w/2 - cx)/w
-                    if (abs(e_a) > 0.01):
+                    if (abs(e_a) > 0.01): # if the robot is not facing the tag
                         my_twist.angular.z = k_a * e_a
-                    else:
+                    else: # the robot is roughly facing the tag
                         my_twist.angular.z = 0
                     
-                    if self.front_dist == 0:
+                    if self.front_dist == 0: # the robot does not detect anything in the front
                         my_twist.linear.x = 0.1
-                    else:
-                        dx = abs(self.distance - self.front_dist)
-                        if dx < self.buffer:
+                    else: # the robot detects the object in the front
+                        dx = abs(self.distance - self.front_dist) # the distane the robot still needs to travel
+                                                                  #    to hit the target distance
+                        if dx < self.buffer: # if the robot hits the target distance
                             my_twist.linear.x = 0
-                        else:
+                        else: # if the robot is far from the target distance
                             e_l = (self.distance - self.front_dist)/self.front_dist
                             my_twist.linear.x = k_l * e_l
                 
-                else:
+                else: # the robot cant find the target object in the camera view
                     my_twist.angular.z = 0.5
-                
+                    
+            # the robot stops in front of the target color / tag
             if (my_twist.angular.z == 0) and (my_twist.linear.x == 0):
-                if (self.detect == 0):
-                    self.counter += 1
-                if self.counter < 4:
-                    self.move_arm()
+                if (self.detect == 0): # if detecting color
+                    self.counter += 1 # update the action counter
+                if self.counter < 4: # the robot has not finished performing three actions
+                                     #    since we update the counter after identifying the color
+                                     #    and before identifying the tag, so we have to adjust
+                                     #    this number to 4 instead of 3 to let the last robot
+                                     #    arm action to be performed
+                    self.move_arm() # grab / drop the color
                     print ("move arm")
-                else:
+                else: # the robot has finished performing the three optimized actions
+                    # robot does nothing
                     my_twist.angular.z = 0
                     my_twist.linear.x = 0
                     self.finished = True
                     print("finished!")
 
+        # publish the robot movement msg
         self.cmd_pub.publish(my_twist)
 
-        # shows the debugging window
-        # hint: you might want to disable this once you're able to get a red circle in the debugging window
+        # shows the debugging window with the red circle
         cv2.imshow("window", image)
         cv2.waitKey(3)
 
+    # process the scan msg to get the min distance of the robot front (front 9 degrees)
     def processing_scan(self, data):
         self.front_dist = min(data.ranges)
+        # we only consider the front 9 degrees because the robot will always adjust itself
+        #    to face the target before performing any arm actions
         front_index = [0,1,2,3,4,359,358,357,356]
         min_value = 0
         for i in range(len(front_index)):
